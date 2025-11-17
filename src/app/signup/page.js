@@ -3,7 +3,6 @@
 import SignupForm from "@/components/signup-form"
 import LoginImage from "@/components/login-image"
 import Navigation from "@/components/home/Navigation";
-import Footer from "@/components/home/Footer";
 
 export default function SignupPage() {
     return (
@@ -20,7 +19,6 @@ export default function SignupPage() {
                     </div>
                 </div>
             </main>
-            <Footer />
         </div>
     )
 }

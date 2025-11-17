@@ -6,7 +6,6 @@ import { useAuth } from "@/context/AuthContext";
 import LoginForm from "@/components/login-form"
 import LoginImage from "@/components/login-image"
 import Navigation from "@/components/home/Navigation";
-import Footer from "@/components/home/Footer";
 
 export default function LoginPage() {
     const router = useRouter();
@@ -50,7 +49,6 @@ export default function LoginPage() {
                     </div>
                 </div>
             </main>
-            <Footer />
         </div>
     )
 }

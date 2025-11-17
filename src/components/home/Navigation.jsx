@@ -252,13 +252,18 @@
 // };
 
 // export default Navigation;
+"use client";
+
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 
 const Navigation = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
+  const isAuthPage = pathname === "/login" || pathname === "/signup";
 
   useEffect(() => {
     const handleScroll = () => {
@@ -277,11 +282,10 @@ const Navigation = () => {
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? "bg-white/80 backdrop-blur-xl shadow-sm border-b border-gray-200"
-          : "bg-white/70 backdrop-blur-xl shadow-sm border-b border-gray-200"
-      }`}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
+        ? "bg-white/80 backdrop-blur-xl shadow-sm border-b border-gray-200"
+        : "bg-white/70 backdrop-blur-xl shadow-sm border-b border-gray-200"
+        }`}
     >
       <div className="max-w-screen-2xl mx-auto px-4 lg:px-8">
         <div className="flex items-center justify-between h-14 lg:h-18">
@@ -295,25 +299,27 @@ const Navigation = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
-              <a
-                key={link.name}
-                href={link.href}
-                className="text-sm lg:text-base text-gray-800 hover:text-[#A64DFF] transition-colors font-medium"
-              >
-                {link.name}
-              </a>
-            ))}
-          </div>
+          {!isAuthPage && (
+            <div className="hidden md:flex items-center gap-8">
+              {navLinks.map((link) => (
+                <a
+                  key={link.name}
+                  href={link.href}
+                  className="text-sm lg:text-base text-gray-800 hover:text-[#A64DFF] transition-colors font-medium"
+                >
+                  {link.name}
+                </a>
+              ))}
+            </div>
+          )}
 
           {/* CTA Button */}
           <div className="hidden md:block">
             <Link
-              href="/auth"
+              href={isAuthPage ? "/" : "/login"}
               className="inline-block px-4 py-2 text-sm lg:text-base font-medium text-white bg-[#A64DFF] rounded hover:bg-purple-600 transition-colors"
             >
-              Get Started
+              {isAuthPage ? "Back to Home" : "Get Started"}
             </Link>
           </div>
 
@@ -332,7 +338,7 @@ const Navigation = () => {
       {mobileMenuOpen && (
         <div className="md:hidden bg-white border-t border-gray-200">
           <div className="px-6 py-4 space-y-4">
-            {navLinks.map((link) => (
+            {!isAuthPage && navLinks.map((link) => (
               <a
                 key={link.name}
                 href={link.href}
@@ -343,11 +349,11 @@ const Navigation = () => {
               </a>
             ))}
             <Link
-              to="/auth"
+              href={isAuthPage ? "/" : "/login"}
               className="block w-full px-4 py-2 text-base font-medium text-white bg-[#A64DFF] rounded hover:bg-purple-600 transition-colors"
               onClick={() => setMobileMenuOpen(false)}
             >
-              Get Started
+              {isAuthPage ? "Back to Home" : "Get Started"}
             </Link>
           </div>
         </div>
