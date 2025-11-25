@@ -8,58 +8,75 @@ class ApiService {
         this.baseURL = API_BASE_URL;
     }
 
-    async request(endpoint, options = {}) {
-        const url = `${this.baseURL}${endpoint}`;
-        const config = {
-            ...options,  // spread options FIRST
-            headers: {
-                'Content-Type': 'application/json',
-                ...(options.headers || {}),
-            }
+async request(endpoint, options = {}) {
+    const url = `${this.baseURL}${endpoint}`;
 
-        };
-        try {
-            const response = await fetch(url, config);
+    // Prepare headers object but DO NOT auto-set Content-Type yet
+    const headers = {
+        ...(options.headers || {})
+    };
 
-            if (!response.ok) {
-                // Handle 401 errors gracefully (user might be logging out)
-                if (response.status === 401) {
-                    // Check if we're on login page or if token is already cleared
-                    if (typeof window !== 'undefined' && !localStorage.getItem('token')) {
-                        // Token already cleared, likely during logout - don't throw error
-                        return null;
-                    }
+    const config = {
+        ...options,
+        headers
+    };
+
+    // Auto-add JSON content-type ONLY if the body is a plain JSON string
+    const isJSONBody =
+        config.body &&
+        typeof config.body === "string" &&
+        !headers["Content-Type"] &&
+        !config.body instanceof FormData;
+
+    if (isJSONBody) {
+        headers["Content-Type"] = "application/json";
+    }
+
+    try {
+        const response = await fetch(url, config);
+
+        if (!response.ok) {
+            if (response.status === 401) {
+                if (typeof window !== "undefined" && !localStorage.getItem("token")) {
+                    return null;
                 }
-
-                // Try to extract error message from response body
-                let errorMessage = `HTTP error! status: ${response.status}`;
-                try {
-                    const errorData = await response.json();
-                    if (errorData?.error) {
-                        errorMessage = errorData.error;
-                    } else if (errorData?.message) {
-                        errorMessage = errorData.message;
-                    }
-                } catch (e) {
-                    // If response is not JSON, use default error message
-                }
-
-                const error = new Error(errorMessage);
-                error.status = response.status;
-                throw error;
             }
 
-            const data = await response.json();
-            return data;
-        } catch (error) {
-            // Don't log 401 errors if token is already cleared (during logout)
-            if (error.message && error.message.includes('401') && typeof window !== 'undefined' && !localStorage.getItem('token')) {
-                return null;
-            }
-            console.error('API request failed:', error);
+            // Extract backend error message
+            let errorMessage = `HTTP error! status: ${response.status}`;
+            try {
+                const errorData = await response.json();
+                if (errorData?.error) errorMessage = errorData.error;
+                else if (errorData?.message) errorMessage = errorData.message;
+            } catch { }
+
+            const error = new Error(errorMessage);
+            error.status = response.status;
             throw error;
         }
+
+        // Some endpoints return empty body
+        const text = await response.text();
+        try {
+            return text ? JSON.parse(text) : {};
+        } catch {
+            return text;
+        }
+    } catch (error) {
+        if (
+            error.message &&
+            error.message.includes("401") &&
+            typeof window !== "undefined" &&
+            !localStorage.getItem("token")
+        ) {
+            return null;
+        }
+
+        console.error("API request failed:", error);
+        throw error;
     }
+}
+
 
     // HTTP method shortcuts
     async get(endpoint, options = {}) {
