@@ -45,14 +45,18 @@ export function AuthProvider({ children }) {
 
                 toast.success("Login successful");
                 router.push("/dashboard");
+                return data;
             } else {
-                toast.error("Invalid login response");
+                const errorMessage = "Invalid login response";
+                toast.error(errorMessage);
+                throw new Error(errorMessage);
             }
-
-            return data;
         } catch (error) {
-            toast.error("Login failed");
+            // Extract error message from API response if available
+            const errorMessage = "Login failed. Please check your credentials.";
+            toast.error(errorMessage);
             console.error("Login error:", error);
+            throw error; // Re-throw so caller knows login failed
         }
     };
 

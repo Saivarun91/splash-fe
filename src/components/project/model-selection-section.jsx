@@ -55,7 +55,7 @@ export function ModelSelectionSection({ project, collectionData, onSave, canEdit
         if (!collectionData?.id) return
 
         try {
-            const response = await apiService.getAllModels(collectionData.id)
+            const response = await apiService.getAllModels(collectionData.id, token)
 
             if (response.success) {
                 setAiModels(response.ai_models || [])
@@ -155,7 +155,7 @@ export function ModelSelectionSection({ project, collectionData, onSave, canEdit
         setSuccess(null)
 
         try {
-            const response = await apiService.uploadRealModels(collectionData.id, files)
+            const response = await apiService.uploadRealModels(collectionData.id, files, token)
 
             if (response.success) {
                 // Reload all models

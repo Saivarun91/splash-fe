@@ -239,7 +239,7 @@ export default function ProjectsRecentPage() {
                         </div>
                         <h3 className="text-lg font-semibold text-gray-700 mb-2">No recent project activity</h3>
                         <p className="text-gray-500 mb-6">
-                            You haven't generated any project images recently. Start creating to see your project history here.
+                            You haven&apos;t generated any project images recently. Start creating to see your project history here.
                         </p>
                         <Link
                             href="/dashboard/projects/create"

@@ -55,7 +55,7 @@ export default function Dashboard() {
     const handleDeleteProject = async (projectId) => {
         if (!confirm("Are you sure you want to delete this project?")) return;
         try {
-            await apiService.deleteProject(projectId);
+            await apiService.deleteProject(projectId, token);
             setProjects((prev) => prev.filter((p) => p.id !== projectId));
         } catch (err) {
             console.error("Error deleting project:", err);

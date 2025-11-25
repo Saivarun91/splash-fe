@@ -1,12 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronLeft, ChevronRight, FileText, Settings, Share2, Zap, Loader2 } from "lucide-react"
+import { ChevronLeft, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { apiService } from "@/lib/api"
 import { useAuth } from "@/context/AuthContext"
-import axios from "axios"
 const CreateProjectPage = () => {
     const [projectName, setProjectName] = useState("")
     const [description, setDescription] = useState("")
@@ -35,18 +34,9 @@ const CreateProjectPage = () => {
                 about: description.trim(),
 
             }
-            const response = await axios.post(
-                "http://127.0.0.1:8000/probackendapp/api/projects/create/",
-                projectData,
-                {
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${token}`
-                    },
-                }
-            )
-            console.log(response.data)
-            router.push(`/dashboard/projects/${response.data.id}`)
+            const response = await apiService.createProject(projectData, token)
+            console.log(response)
+            router.push(`/dashboard/projects/${response.id}`)
         } catch (err) {
             console.error('Error creating project:', err)
             setError(err.message || 'Failed to create project. Please try again.')
@@ -91,10 +81,11 @@ const CreateProjectPage = () => {
                     <div className="max-w-2xl space-y-8">
                         {/* Project Name Field */}
                         <div>
-                            <label className="block text-lg font-semibold text-gray-900 mb-3">
+                            <label htmlFor="projectName" className="block text-lg font-semibold text-gray-900 mb-3">
                                 Project Name<span className="text-red-500">*</span>
                             </label>
                             <input
+                                id="projectName"
                                 type="text"
                                 placeholder="Enter your project name"
                                 value={projectName}
@@ -106,10 +97,11 @@ const CreateProjectPage = () => {
 
                         {/* Description Field */}
                         <div>
-                            <label className="block text-lg font-semibold text-gray-900 mb-3">
+                            <label htmlFor="description" className="block text-lg font-semibold text-gray-900 mb-3">
                                 Description<span className="text-red-500">*</span>
                             </label>
                             <textarea
+                                id="description"
                                 placeholder="Brief description of the product or collection"
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}

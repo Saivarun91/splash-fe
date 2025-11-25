@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Clock, Calendar, Image as ImageIcon, FolderOpen, Sparkles, RefreshCw } from 'lucide-react';
-import api from '@/lib/api';
+import { apiService } from '@/lib/api';
 
 export default function RecentPage() {
     const { user } = useAuth();
@@ -28,18 +28,8 @@ export default function RecentPage() {
             const token = localStorage.getItem('token');
 
             const [historyResponse, projectsResponse] = await Promise.all([
-                api.get('/probackendapp/api/recent/history/', {
-                    params: { days: timeFilter },
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                }),
-                api.get('/probackendapp/api/recent/projects/', {
-                    params: { days: timeFilter },
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                })
+                apiService.getRecentHistory(token, { days: timeFilter }),
+                apiService.getRecentProjects(token, { days: timeFilter })
             ]);
 
             setHistory(historyResponse.history || []);

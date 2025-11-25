@@ -11,11 +11,12 @@ class ApiService {
     async request(endpoint, options = {}) {
         const url = `${this.baseURL}${endpoint}`;
         const config = {
+            ...options,  // spread options FIRST
             headers: {
                 'Content-Type': 'application/json',
-                ...options.headers,
-            },
-            ...options,
+                ...(options.headers || {}),
+            }
+
         };
         try {
             const response = await fetch(url, config);
@@ -29,7 +30,23 @@ class ApiService {
                         return null;
                     }
                 }
-                throw new Error(`HTTP error! status: ${response.status}`);
+
+                // Try to extract error message from response body
+                let errorMessage = `HTTP error! status: ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    if (errorData?.error) {
+                        errorMessage = errorData.error;
+                    } else if (errorData?.message) {
+                        errorMessage = errorData.message;
+                    }
+                } catch (e) {
+                    // If response is not JSON, use default error message
+                }
+
+                const error = new Error(errorMessage);
+                error.status = response.status;
+                throw error;
             }
 
             const data = await response.json();
@@ -88,11 +105,16 @@ class ApiService {
 
     // User endpoints   
     async login(email, password) {
+        console.log('API URL', this.baseURL);
         return this.request('/api/login/', {
             method: 'POST',
+            headers: {
+                "Content-Type": "application/json",
+            },
             body: JSON.stringify({ email, password }),
-        })
+        });
     }
+
     async register(full_name, username, email, password) {
         console.log(full_name, username, email, password)
         return this.request('/api/register/', {
@@ -218,6 +240,20 @@ class ApiService {
         return this.request(`/probackendapp/api/projects/${projectId}/setup/description/`, {
             method: 'POST',
             body: JSON.stringify(requestData),
+        });
+    }
+
+    async removeWorkflowImage(projectId, collectionId, imageId, category, token, cloudUrl = null) {
+        return this.request(`/probackendapp/api/projects/${projectId}/collections/${collectionId}/remove-workflow-image/`, {
+            method: 'DELETE',
+            body: JSON.stringify({
+                image_id: imageId,
+                cloud_url: cloudUrl,
+                category: category
+            }),
+            headers: {
+                'Authorization': `Bearer ${token || ''}`,
+            },
         });
     }
 
@@ -370,7 +406,7 @@ class ApiService {
     }
 
     // Model Management endpoints
-    async uploadRealModels(collectionId, images) {
+    async uploadRealModels(collectionId, images, token) {
         const formData = new FormData();
         for (const image of images) {
             formData.append('images', image);
@@ -378,12 +414,20 @@ class ApiService {
 
         return fetch(`${this.baseURL}/probackendapp/api/collections/${collectionId}/upload-real-models/`, {
             method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token || ''}`,
+            },
             body: formData,
         }).then(response => response.json());
     }
 
-    async getAllModels(collectionId) {
-        return this.request(`/probackendapp/api/collections/${collectionId}/get-all-models/`);
+    async getAllModels(collectionId, token) {
+        return this.request(`/probackendapp/api/collections/${collectionId}/get-all-models/`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token || ''}`,
+            },
+        });
     }
 
     async selectModel(collectionId, modelType, modelData) {
@@ -610,7 +654,7 @@ class ApiService {
         if (!imageId || typeof imageId !== 'string') {
             throw new Error('Invalid image ID: image_id is required and must be a string');
         }
-        
+
         // MongoDB ObjectId must be exactly 24 hex characters
         const objectIdPattern = /^[0-9a-fA-F]{24}$/;
         if (!objectIdPattern.test(imageId)) {

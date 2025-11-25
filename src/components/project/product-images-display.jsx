@@ -97,7 +97,7 @@ export function ProductImagesDisplay({
 
         // Load available models
         try {
-            const modelsData = await apiService.getAllModels(collectionData.id)
+            const modelsData = await apiService.getAllModels(collectionData.id, token)
             if (modelsData.success) {
                 setAvailableModels({
                     ai_models: modelsData.ai_models || [],

@@ -18,12 +18,14 @@ export default function LoginForm() {
         e.preventDefault();
         // Handle sign in logic
         setLoading(true);
+        setMessage(""); // Clear previous messages
         console.log("Sign in with:", { email, password });
         try {
             await login(email, password);
-            router.push("/dashboard");
+            // Navigation is handled in AuthContext.login on success
         } catch (err) {
-            setMessage(err.message);
+
+            setMessage("Login failed. Please check your credentials.");
         } finally {
             setLoading(false);
         }
@@ -91,6 +93,13 @@ export default function LoginForm() {
                         Forgot Password?
                     </a>
                 </div>
+
+                {/* Error Message */}
+                {message && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-sm text-red-600">{message}</p>
+                    </div>
+                )}
 
                 {/* Sign In Button */}
                 <Button

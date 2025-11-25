@@ -220,11 +220,47 @@ export function ThemesAndBackgrounds({ showSuggestions = false, collectionData, 
     }
 
     // Remove uploaded image
-    const removeUploadedImage = (category, imageId) => {
-        setUploadedImages(prev => ({
-            ...prev,
-            [category]: prev[category].filter(img => img.id !== imageId)
-        }))
+    const removeUploadedImage = async (category, imageId) => {
+        if (!project?.id || !collectionData?.id) {
+            console.error('Missing project or collection data')
+            return
+        }
+
+        // Find the image to get its cloud_url
+        const image = uploadedImages[category]?.find(img => img.id === imageId)
+        if (!image) {
+            console.error('Image not found in local state')
+            return
+        }
+
+        try {
+            const response = await apiService.removeWorkflowImage(
+                project.id,
+                collectionData.id,
+                imageId,
+                category,
+                token,
+                image.cloud_url || image.url
+            )
+
+            if (response.success) {
+                // Remove from local state
+                setUploadedImages(prev => ({
+                    ...prev,
+                    [category]: prev[category].filter(img => img.id !== imageId)
+                }))
+                
+                // Refresh collection data
+                const updatedData = await apiService.getCollection(collectionData.id, token)
+                if (updatedData && onSave) {
+                    await onSave({ imagesUpdated: true })
+                }
+            } else {
+                console.error('Failed to remove image:', response.error)
+            }
+        } catch (error) {
+            console.error('Error removing image:', error)
+        }
     }
 
     // Handle file input change

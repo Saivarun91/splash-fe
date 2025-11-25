@@ -18,6 +18,16 @@ export function ColorPalette({ showSuggestions = false, collectionData, project,
     // Get suggestions and selections from collection data
     const item = collectionData?.items?.[0]
     const aiColorSuggestions = (item?.suggested_colors || []).slice(0, 10)
+    
+    // Debug: Log suggestions to help troubleshoot
+    useEffect(() => {
+        if (item) {
+            console.log('Color Palette - Collection item:', item)
+            console.log('Color Palette - Suggested colors:', item.suggested_colors)
+            console.log('Color Palette - AI Color Suggestions:', aiColorSuggestions)
+            console.log('Color Palette - Show Suggestions prop:', showSuggestions)
+        }
+    }, [item, aiColorSuggestions, showSuggestions])
 
     // Load existing selections and uploaded images when collection data changes
     useEffect(() => {
@@ -103,8 +113,44 @@ export function ColorPalette({ showSuggestions = false, collectionData, project,
     }
 
     // Remove uploaded image
-    const removeUploadedImage = (imageId) => {
-        setUploadedImages(prev => prev.filter(img => img.id !== imageId))
+    const removeUploadedImage = async (imageId) => {
+        if (!project?.id || !collectionData?.id) {
+            console.error('Missing project or collection data')
+            return
+        }
+
+        // Find the image to get its cloud_url
+        const image = uploadedImages.find(img => img.id === imageId)
+        if (!image) {
+            console.error('Image not found in local state')
+            return
+        }
+
+        try {
+            const response = await apiService.removeWorkflowImage(
+                project.id,
+                collectionData.id,
+                imageId,
+                'colors',
+                token,
+                image.cloud_url || image.url
+            )
+
+            if (response.success) {
+                // Remove from local state
+                setUploadedImages(prev => prev.filter(img => img.id !== imageId))
+                
+                // Refresh collection data
+                const updatedData = await apiService.getCollection(collectionData.id, token)
+                if (updatedData && onSave) {
+                    await onSave({ imagesUpdated: true })
+                }
+            } else {
+                console.error('Failed to remove image:', response.error)
+            }
+        } catch (error) {
+            console.error('Error removing image:', error)
+        }
     }
 
     // Handle file input change
@@ -150,7 +196,7 @@ export function ColorPalette({ showSuggestions = false, collectionData, project,
             <div className="flex gap-6">
                 {/* AI Suggested Color Palettes Section - 50% width */}
                 <div className="flex-1 w-2/3 space-y-3">
-                    {showSuggestions && aiColorSuggestions.length > 0 ? (
+                    {aiColorSuggestions.length > 0 ? (
                         <>
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
                                 <p className="text-blue-600 text-sm text-center font-medium">AI Suggested Color Palettes</p>
@@ -170,6 +216,11 @@ export function ColorPalette({ showSuggestions = false, collectionData, project,
                                 <span className="text-sm text-[#708090] flex-1">AI Suggested Color Palettes</span>
                                 <ChevronDown className="w-4 h-4 text-[#708090]" />
                             </div>
+                            {showSuggestions && (
+                                <p className="text-xs text-[#708090] text-center italic">
+                                    Generate suggestions in Step 1 to see AI color palette recommendations
+                                </p>
+                            )}
                         </div>
                     )}
                 </div>

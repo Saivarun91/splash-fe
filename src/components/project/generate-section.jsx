@@ -17,7 +17,7 @@ export function GenerateSection({ project, collectionData, onGenerate, canEdit, 
         const loadSelectedModel = async () => {
             if (collectionData?.id) {
                 try {
-                    const response = await apiService.getAllModels(collectionData.id)
+                    const response = await apiService.getAllModels(collectionData.id, token)
                     if (response.success && response.selected_model) {
                         setSelectedModel(response.selected_model.local || response.selected_model.cloud)
                     }
@@ -27,7 +27,7 @@ export function GenerateSection({ project, collectionData, onGenerate, canEdit, 
             }
         }
         loadSelectedModel()
-    }, [collectionData])
+    }, [collectionData, token])
 
     const handleGenerate = async () => {
         if (!collectionData?.id) {
