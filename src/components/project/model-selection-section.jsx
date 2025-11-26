@@ -123,6 +123,7 @@ export function ModelSelectionSection({ project, collectionData, onSave, canEdit
 
         setLoading(true)
         setError(null)
+        setSuccess(null)
 
         try {
             const response = await apiService.saveGeneratedImages(
@@ -131,15 +132,23 @@ export function ModelSelectionSection({ project, collectionData, onSave, canEdit
                 token
             )
 
-            if (response.success) {
+            if (response && response.success) {
                 // Reload all models to get the updated list
                 await loadAllModels()
                 setGeneratedModels([])
                 setSuccess('AI models saved successfully!')
+                return true // Return true to indicate success
+            } else {
+                // Handle case where response.success is false
+                const errorMsg = response?.error || 'Failed to save models. Please try again.'
+                setError(errorMsg)
+                console.error('Save failed:', response)
+                return false // Return false to indicate failure
             }
         } catch (err) {
             console.error('Error saving models:', err)
             setError(err.message || 'Failed to save models')
+            return false // Return false to indicate failure
         } finally {
             setLoading(false)
         }
@@ -360,9 +369,15 @@ function AIModelsTab({
         )
     }
 
-    const handleSaveClick = () => {
-        onSave(tempSelectedModels)
-        setTempSelectedModels([])
+    const handleSaveClick = async () => {
+        if (tempSelectedModels.length === 0) {
+            return
+        }
+        const success = await onSave(tempSelectedModels)
+        // Only clear selection if save was successful
+        if (success) {
+            setTempSelectedModels([])
+        }
     }
 
     const allGeneratedUrls = generatedModels
