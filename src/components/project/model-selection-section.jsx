@@ -98,7 +98,7 @@ export function ModelSelectionSection({ project, collectionData, onSave, canEdit
         setSuccess(null)
 
         try {
-            const response = await apiService.generateAIImages(collectionData.id)
+            const response = await apiService.generateAIImages(collectionData.id,token)
 
             if (response.images && response.images.length > 0) {
                 // Add newly generated models to the list
