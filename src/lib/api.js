@@ -410,6 +410,19 @@ async request(endpoint, options = {}) {
         });
     }
 
+    async generateSingleProductModelImages(collectionId, productImageUrl, productImagePath, token) {
+        return this.request(`/probackendapp/api/collections/${collectionId}/generate-product-model-images/`, {
+            method: 'POST',
+            body: JSON.stringify({
+                product_image_url: productImageUrl,
+                product_image_path: productImagePath
+            }),
+            headers: {
+                'Authorization': `Bearer ${token || ''}`,
+            },
+        });
+    }
+
     async regenerateProductModelImage(collectionId, productImagePath, generatedImagePath, prompt, useDifferentModel = false, newModel = null, token) {
         return this.request(`/probackendapp/api/collections/${collectionId}/regenerate/`, {
             method: 'POST',
