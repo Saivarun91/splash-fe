@@ -414,8 +414,9 @@ async request(endpoint, options = {}) {
         return this.request(`/probackendapp/api/collections/${collectionId}/generate-product-model-images/`, {
             method: 'POST',
             body: JSON.stringify({
-                product_image_url: productImageUrl,
-                product_image_path: productImagePath
+                // product_image_url: productImageUrl,
+                // product_image_path: productImagePath
+                product_url: productImageUrl 
             }),
             headers: {
                 'Authorization': `Bearer ${token || ''}`,
