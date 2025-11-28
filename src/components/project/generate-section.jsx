@@ -53,53 +53,23 @@ export function GenerateSection({ project, collectionData, onGenerate, canEdit, 
         setSuccess(null)
 
         try {
-            let totalGenerated = 0
-            let successCount = 0
-            let errorCount = 0
-            const errors = []
-
-            // Generate images for each product individually to avoid CORS issues
-            // Instead of: POST /generate-all with [orn1, orn2, orn3]
-            // We do: POST /generate for orn1, POST /generate for orn2, POST /generate for orn3
-            for (let i = 0; i < productImages.length; i++) {
-                const product = productImages[i]
-                setGenerationProgress({ current: i + 1, total: productImages.length })
-                try {
-                    console.log(`Generating images for product ${i + 1} of ${productImages.length}...`)
-                    const response = await apiService.generateSingleProductModelImages(
-                        collectionData.id,
-                        product.uploaded_image_url,
-                        product.uploaded_image_path,
-                        token
-                    )
-
-                    if (response.success) {
-                        totalGenerated += response.generated_count || 0
-                        successCount++
-                        console.log(`✅ Generated ${response.generated_count || 0} images for product ${i + 1}`)
-                    } else {
-                        errorCount++
-                        const errorMsg = `Product ${i + 1}: ${response.error || 'Unknown error'}`
-                        errors.push(errorMsg)
-                        console.error(`❌ Failed to generate images for product ${i + 1}:`, response.error)
-                    }
-                } catch (err) {
-                    errorCount++
-                    const errorMsg = `Product ${i + 1}: ${err.message || 'Network error'}`
-                    errors.push(errorMsg)
-                    console.error(`❌ Error generating images for product ${i + 1}:`, err)
+            const response = await apiService.generateProductModelImagesWithPolling(
+                collectionData.id, 
+                token,
+                (progress) => {
+                    // Update progress if needed
+                    console.log('Generation progress:', progress.status)
                 }
-            }
+            )
 
-            if (successCount > 0) {
-                setSuccess(`Generated ${totalGenerated} images successfully for ${successCount} product(s)!${errorCount > 0 ? ` (${errorCount} failed)` : ''}`)
+            if (response.success) {
+                setSuccess(`Generated ${response.total_generated || 0} images successfully!`)
                 if (onGenerate) {
                     await onGenerate({ imagesGenerated: true })
                 }
                 setTimeout(() => setSuccess(null), 5000)
             } else {
-                const errorMessage = `Failed to generate images for all products. ${errorCount} product(s) failed.${errors.length > 0 ? `\nErrors: ${errors.join(', ')}` : ''}`
-                setError(errorMessage)
+                setError(response.error || 'Failed to generate images')
             }
         } catch (err) {
             console.error('Error generating images:', err)
@@ -107,7 +77,6 @@ export function GenerateSection({ project, collectionData, onGenerate, canEdit, 
         } finally {
             setGenerating(false)
             setIsGenerating(false)
-            setGenerationProgress(null)
         }
     }
     console.log("canEdit", canEdit);
