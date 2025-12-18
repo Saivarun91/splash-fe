@@ -1,4 +1,4 @@
-import { ChevronDown, Upload, X } from "lucide-react"
+import { Upload, X, Eye } from "lucide-react"
 import { MultiSelect } from "@/components/ui/multi-select"
 import { Button } from "@/components/ui/button"
 import { ColorPicker } from "@/components/ui/color-picker"
@@ -18,7 +18,7 @@ export function ColorPalette({ showSuggestions = false, collectionData, project,
     // Get suggestions and selections from collection data
     const item = collectionData?.items?.[0]
     const aiColorSuggestions = (item?.suggested_colors || []).slice(0, 10)
-    
+
     // Debug: Log suggestions to help troubleshoot
     useEffect(() => {
         if (item) {
@@ -139,7 +139,7 @@ export function ColorPalette({ showSuggestions = false, collectionData, project,
             if (response.success) {
                 // Remove from local state
                 setUploadedImages(prev => prev.filter(img => img.id !== imageId))
-                
+
                 // Refresh collection data
                 const updatedData = await apiService.getCollection(collectionData.id, token)
                 if (updatedData && onSave) {
@@ -189,15 +189,18 @@ export function ColorPalette({ showSuggestions = false, collectionData, project,
         }
     }, [uploadedImages])
 
+    const hasSuggestions = showSuggestions && aiColorSuggestions.length > 0
+
     return (
         <div className="space-y-4">
             <h3 className="font-bold text-[#1a1a1a] text-lg">Color Palette</h3>
 
-            <div className="flex gap-6">
-                {/* AI Suggested Color Palettes Section - 50% width */}
-                <div className="flex-1 w-2/3 space-y-3">
-                    {aiColorSuggestions.length > 0 ? (
-                        <>
+            {hasSuggestions ? (
+                // Layout when suggestions are present: AI suggestions + color picker in row, upload section below
+                <>
+                    <div className="flex gap-6">
+                        {/* AI Suggested Color Palettes Section */}
+                        <div className="flex-1 w-2/3 space-y-3">
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
                                 <p className="text-blue-600 text-sm text-center font-medium">AI Suggested Color Palettes</p>
                             </div>
@@ -208,56 +211,224 @@ export function ColorPalette({ showSuggestions = false, collectionData, project,
                                 placeholder="Select color palettes..."
                                 disabled={!canEdit}
                             />
-                        </>
-                    ) : (
-                        <div className="space-y-3">
-                            <div className="flex items-center gap-2 px-3 py-2 border border-[#e6e6e6] rounded-lg bg-gray-50">
-                                <div className="w-4 h-4 border border-[#708090] rounded"></div>
-                                <span className="text-sm text-[#708090] flex-1">AI Suggested Color Palettes</span>
-                                <ChevronDown className="w-4 h-4 text-[#708090]" />
-                            </div>
-                            {showSuggestions && (
-                                <p className="text-xs text-[#708090] text-center italic">
-                                    Generate suggestions in Step 1 to see AI color palette recommendations
-                                </p>
+                        </div>
+
+                        {/* Color Picker Section */}
+                        <div className="flex-1 w-1/2 space-y-3">
+                            <p className="text-sm text-[#708090]">Or pick specific colors:</p>
+                            <ColorPicker
+                                selectedColors={pickedColors}
+                                onColorsChange={setPickedColors}
+                                disabled={!canEdit}
+                            />
+
+                            {/* Display picked colors */}
+                            {pickedColors.length > 0 && (
+                                <div className="space-y-2">
+                                    <p className="text-xs text-[#708090]">
+                                        {pickedColors.length} color(s) selected
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {pickedColors.map((color, index) => (
+                                            <div key={index} className="relative group">
+                                                <div
+                                                    className="w-8 h-8 rounded border border-gray-300"
+                                                    style={{
+                                                        background: color.includes('gradient') ? color : undefined,
+                                                        backgroundColor: color.includes('gradient') ? 'transparent' : color
+                                                    }}
+                                                    title={color}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             )}
                         </div>
-                    )}
-                </div>
+                    </div>
 
-                {/* Color Picker Section - 50% width */}
-                <div className="flex-1 w-1/2 space-y-3">
-                    <p className="text-sm text-[#708090]">Or pick specific colors:</p>
-                    <ColorPicker
-                        selectedColors={pickedColors}
-                        onColorsChange={setPickedColors}
-                        disabled={!canEdit}
-                    />
-
-                    {/* Display picked colors */}
-                    {pickedColors.length > 0 && (
-                        <div className="space-y-2">
-                            <p className="text-xs text-[#708090]">
-                                {pickedColors.length} color(s) selected
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                                {pickedColors.map((color, index) => (
-                                    <div key={index} className="relative group">
-                                        <div
-                                            className="w-8 h-8 rounded border border-gray-300"
-                                            style={{
-                                                background: color.includes('gradient') ? color : undefined,
-                                                backgroundColor: color.includes('gradient') ? 'transparent' : color
-                                            }}
-                                            title={color}
-                                        />
-                                    </div>
-                                ))}
-                            </div>
+                    {/* Upload Color Images Section */}
+                    <div className="border-2 border-dashed border-[#b0bec5] rounded-lg p-6 space-y-4">
+                        <div>
+                            <h4 className="font-bold text-[#1a1a1a] mb-1">Upload Color Images</h4>
+                            <p className="text-sm text-[#708090]">Upload inspiration images for color palette</p>
                         </div>
-                    )}
+
+                        <div className="space-y-3">
+                            {/* Hidden file input */}
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                onChange={handleFileInputChange}
+                                className="hidden"
+                                disabled={!canEdit}
+                            />
+
+                            <Button
+                                variant="outline"
+                                className="w-full bg-transparent"
+                                disabled={!canEdit || uploading}
+                                onClick={triggerFileInput}
+                            >
+                                <Upload className="w-4 h-4 mr-2" />
+                                {uploading ? 'Uploading...' : 'Choose files'}
+                            </Button>
+
+                            {/* Uploaded images preview */}
+                            {uploadedImages.length > 0 && (
+                                <div className="space-y-2">
+                                    <p className="text-xs text-[#708090]">
+                                        {uploadedImages.length} file(s) selected
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {uploadedImages.map((image) => (
+                                            <div key={image.id} className="relative group">
+                                                <img
+                                                    src={image.url}
+                                                    alt={image.name}
+                                                    className="w-full h-16 object-cover rounded border"
+                                                />
+                                                <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            window.open(image.url || image.cloud_url, '_blank')
+                                                        }}
+                                                        className="bg-blue-500 text-white rounded-full p-1 hover:bg-blue-600 transition-colors"
+                                                        title="View image"
+                                                    >
+                                                        <Eye className="w-3 h-3" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => removeUploadedImage(image.id)}
+                                                        className="bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                                                        disabled={!canEdit}
+                                                        title="Remove image"
+                                                    >
+                                                        <X className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </>
+            ) : (
+                // Layout when suggestions are NOT present: Color picker and upload section side by side in grid
+                <div className="grid grid-cols-2 gap-6">
+                    {/* Color Picker Section */}
+                    <div className="border-2 border-dashed border-[#b0bec5] rounded-lg p-6 space-y-4">
+                        <div>
+                            <h4 className="font-bold text-[#1a1a1a] mb-1">Pick Specific Colors</h4>
+                            <p className="text-sm text-[#708090]">Choose colors for your palette</p>
+                        </div>
+                        <ColorPicker
+                            selectedColors={pickedColors}
+                            onColorsChange={setPickedColors}
+                            disabled={!canEdit}
+                        />
+
+                        {/* Display picked colors */}
+                        {pickedColors.length > 0 && (
+                            <div className="space-y-2">
+                                <p className="text-xs text-[#708090]">
+                                    {pickedColors.length} color(s) selected
+                                </p>
+                                <div className="flex flex-wrap gap-2">
+                                    {pickedColors.map((color, index) => (
+                                        <div key={index} className="relative group">
+                                            <div
+                                                className="w-8 h-8 rounded border border-gray-300"
+                                                style={{
+                                                    background: color.includes('gradient') ? color : undefined,
+                                                    backgroundColor: color.includes('gradient') ? 'transparent' : color
+                                                }}
+                                                title={color}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Upload Color Images Section */}
+                    <div className="border-2 border-dashed border-[#b0bec5] rounded-lg p-6 space-y-4">
+                        <div>
+                            <h4 className="font-bold text-[#1a1a1a] mb-1">Upload Color Images</h4>
+                            <p className="text-sm text-[#708090]">Upload inspiration images for color palette</p>
+                        </div>
+
+                        <div className="space-y-3">
+                            {/* Hidden file input */}
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                onChange={handleFileInputChange}
+                                className="hidden"
+                                disabled={!canEdit}
+                            />
+
+                            <Button
+                                variant="outline"
+                                className="w-full bg-transparent"
+                                disabled={!canEdit || uploading}
+                                onClick={triggerFileInput}
+                            >
+                                <Upload className="w-4 h-4 mr-2" />
+                                {uploading ? 'Uploading...' : 'Choose files'}
+                            </Button>
+
+                            {/* Uploaded images preview */}
+                            {uploadedImages.length > 0 && (
+                                <div className="space-y-2">
+                                    <p className="text-xs text-[#708090]">
+                                        {uploadedImages.length} file(s) selected
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {uploadedImages.map((image) => (
+                                            <div key={image.id} className="relative group">
+                                                <img
+                                                    src={image.url}
+                                                    alt={image.name}
+                                                    className="w-full h-16 object-cover rounded border"
+                                                />
+                                                <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            window.open(image.url || image.cloud_url, '_blank')
+                                                        }}
+                                                        className="bg-blue-500 text-white rounded-full p-1 hover:bg-blue-600 transition-colors"
+                                                        title="View image"
+                                                    >
+                                                        <Eye className="w-3 h-3" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => removeUploadedImage(image.id)}
+                                                        className="bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                                                        disabled={!canEdit}
+                                                        title="Remove image"
+                                                    >
+                                                        <X className="w-3 h-3" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     )
 }

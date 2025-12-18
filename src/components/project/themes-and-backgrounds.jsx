@@ -1,4 +1,4 @@
-import { ChevronDown, Upload, X, Image as ImageIcon } from "lucide-react"
+import { ChevronDown, Upload, X, Image as ImageIcon, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { MultiSelect } from "@/components/ui/multi-select"
 import { useState, useEffect, useRef } from "react"
@@ -249,7 +249,7 @@ export function ThemesAndBackgrounds({ showSuggestions = false, collectionData, 
                     ...prev,
                     [category]: prev[category].filter(img => img.id !== imageId)
                 }))
-                
+
                 // Refresh collection data
                 const updatedData = await apiService.getCollection(collectionData.id, token)
                 if (updatedData && onSave) {
@@ -287,7 +287,7 @@ export function ThemesAndBackgrounds({ showSuggestions = false, collectionData, 
                     <p className="text-sm text-[#708090]">Define project vision and upload inspiration</p>
                 </div>
 
-                {showSuggestions && aiSuggestions.themes.length > 0 ? (
+                {showSuggestions && aiSuggestions.themes.length > 0 && (
                     <div className="space-y-3">
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
                             <p className="text-blue-600 text-sm font-medium">AI Suggested Themes</p>
@@ -300,18 +300,12 @@ export function ThemesAndBackgrounds({ showSuggestions = false, collectionData, 
                             disabled={!canEdit}
                         />
                     </div>
-                ) : (
-                    <div className="space-y-3">
-                        <div className="flex items-center gap-2 px-3 py-2 border border-[#e6e6e6] rounded-lg bg-gray-50">
-                            <div className="w-4 h-4 border border-[#708090] rounded"></div>
-                            <span className="text-sm text-[#708090] flex-1">AI Suggested Themes</span>
-                            <ChevronDown className="w-4 h-4 text-[#708090]" />
-                        </div>
-                    </div>
                 )}
 
                 <div className="space-y-3">
-                    <p className="text-sm text-[#708090] text-center">Or</p>
+                    {showSuggestions && aiSuggestions.themes.length > 0 && (
+                        <p className="text-sm text-[#708090] text-center">Or</p>
+                    )}
 
                     {/* Hidden file input */}
                     <input
@@ -348,13 +342,26 @@ export function ThemesAndBackgrounds({ showSuggestions = false, collectionData, 
                                             alt={image.name}
                                             className="w-full h-16 object-cover rounded border"
                                         />
-                                        <button
-                                            onClick={() => removeUploadedImage('themes', image.id)}
-                                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                            disabled={!canEdit}
-                                        >
-                                            <X className="w-3 h-3" />
-                                        </button>
+                                        <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    window.open(image.url || image.cloud_url, '_blank')
+                                                }}
+                                                className="bg-blue-500 text-white rounded-full p-1 hover:bg-blue-600 transition-colors"
+                                                title="View image"
+                                            >
+                                                <Eye className="w-3 h-3" />
+                                            </button>
+                                            <button
+                                                onClick={() => removeUploadedImage('themes', image.id)}
+                                                className="bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                                                disabled={!canEdit}
+                                                title="Remove image"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -370,7 +377,7 @@ export function ThemesAndBackgrounds({ showSuggestions = false, collectionData, 
                     <p className="text-sm text-[#708090]">Define project vision and upload inspiration</p>
                 </div>
 
-                {showSuggestions && aiSuggestions.backgrounds.length > 0 ? (
+                {showSuggestions && aiSuggestions.backgrounds.length > 0 && (
                     <div className="space-y-3">
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
                             <p className="text-blue-600 text-sm font-medium">AI Suggested Backgrounds</p>
@@ -383,18 +390,12 @@ export function ThemesAndBackgrounds({ showSuggestions = false, collectionData, 
                             disabled={!canEdit}
                         />
                     </div>
-                ) : (
-                    <div className="space-y-3">
-                        <div className="flex items-center gap-2 px-3 py-2 border border-[#e6e6e6] rounded-lg bg-gray-50">
-                            <div className="w-4 h-4 border border-[#708090] rounded"></div>
-                            <span className="text-sm text-[#708090] flex-1">AI Suggested Backgrounds</span>
-                            <ChevronDown className="w-4 h-4 text-[#708090]" />
-                        </div>
-                    </div>
                 )}
 
                 <div className="space-y-3">
-                    <p className="text-sm text-[#708090] text-center">Or</p>
+                    {showSuggestions && aiSuggestions.backgrounds.length > 0 && (
+                        <p className="text-sm text-[#708090] text-center">Or</p>
+                    )}
 
                     {/* Hidden file input */}
                     <input
@@ -431,13 +432,26 @@ export function ThemesAndBackgrounds({ showSuggestions = false, collectionData, 
                                             alt={image.name}
                                             className="w-full h-16 object-cover rounded border"
                                         />
-                                        <button
-                                            onClick={() => removeUploadedImage('backgrounds', image.id)}
-                                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                            disabled={!canEdit}
-                                        >
-                                            <X className="w-3 h-3" />
-                                        </button>
+                                        <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    window.open(image.url || image.cloud_url, '_blank')
+                                                }}
+                                                className="bg-blue-500 text-white rounded-full p-1 hover:bg-blue-600 transition-colors"
+                                                title="View image"
+                                            >
+                                                <Eye className="w-3 h-3" />
+                                            </button>
+                                            <button
+                                                onClick={() => removeUploadedImage('backgrounds', image.id)}
+                                                className="bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                                                disabled={!canEdit}
+                                                title="Remove image"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -453,7 +467,7 @@ export function ThemesAndBackgrounds({ showSuggestions = false, collectionData, 
                     <p className="text-sm text-[#708090]">Define project vision and upload inspiration</p>
                 </div>
 
-                {showSuggestions && aiSuggestions.poses.length > 0 ? (
+                {showSuggestions && aiSuggestions.poses.length > 0 && (
                     <div className="space-y-3">
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
                             <p className="text-blue-600 text-sm font-medium">AI Suggested Poses</p>
@@ -466,18 +480,12 @@ export function ThemesAndBackgrounds({ showSuggestions = false, collectionData, 
                             disabled={!canEdit}
                         />
                     </div>
-                ) : (
-                    <div className="space-y-3">
-                        <div className="flex items-center gap-2 px-3 py-2 border border-[#e6e6e6] rounded-lg bg-gray-50">
-                            <div className="w-4 h-4 border border-[#708090] rounded"></div>
-                            <span className="text-sm text-[#708090] flex-1">AI Suggested Poses</span>
-                            <ChevronDown className="w-4 h-4 text-[#708090]" />
-                        </div>
-                    </div>
                 )}
 
                 <div className="space-y-3">
-                    <p className="text-sm text-[#708090] text-center">Or</p>
+                    {showSuggestions && aiSuggestions.poses.length > 0 && (
+                        <p className="text-sm text-[#708090] text-center">Or</p>
+                    )}
 
                     {/* Hidden file input */}
                     <input
@@ -514,13 +522,26 @@ export function ThemesAndBackgrounds({ showSuggestions = false, collectionData, 
                                             alt={image.name}
                                             className="w-full h-16 object-cover rounded border"
                                         />
-                                        <button
-                                            onClick={() => removeUploadedImage('poses', image.id)}
-                                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                            disabled={!canEdit}
-                                        >
-                                            <X className="w-3 h-3" />
-                                        </button>
+                                        <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    window.open(image.url || image.cloud_url, '_blank')
+                                                }}
+                                                className="bg-blue-500 text-white rounded-full p-1 hover:bg-blue-600 transition-colors"
+                                                title="View image"
+                                            >
+                                                <Eye className="w-3 h-3" />
+                                            </button>
+                                            <button
+                                                onClick={() => removeUploadedImage('poses', image.id)}
+                                                className="bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                                                disabled={!canEdit}
+                                                title="Remove image"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -536,7 +557,7 @@ export function ThemesAndBackgrounds({ showSuggestions = false, collectionData, 
                     <p className="text-sm text-[#708090]">Define project vision and upload inspiration</p>
                 </div>
 
-                {showSuggestions && aiSuggestions.locations.length > 0 ? (
+                {showSuggestions && aiSuggestions.locations.length > 0 && (
                     <div className="space-y-3">
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
                             <p className="text-blue-600 text-sm font-medium">AI Suggested Locations</p>
@@ -549,18 +570,12 @@ export function ThemesAndBackgrounds({ showSuggestions = false, collectionData, 
                             disabled={!canEdit}
                         />
                     </div>
-                ) : (
-                    <div className="space-y-3">
-                        <div className="flex items-center gap-2 px-3 py-2 border border-[#e6e6e6] rounded-lg bg-gray-50">
-                            <div className="w-4 h-4 border border-[#708090] rounded"></div>
-                            <span className="text-sm text-[#708090] flex-1">AI Suggested Locations</span>
-                            <ChevronDown className="w-4 h-4 text-[#708090]" />
-                        </div>
-                    </div>
                 )}
 
                 <div className="space-y-3">
-                    <p className="text-sm text-[#708090] text-center">Or</p>
+                    {showSuggestions && aiSuggestions.locations.length > 0 && (
+                        <p className="text-sm text-[#708090] text-center">Or</p>
+                    )}
 
                     {/* Hidden file input */}
                     <input
@@ -597,13 +612,26 @@ export function ThemesAndBackgrounds({ showSuggestions = false, collectionData, 
                                             alt={image.name}
                                             className="w-full h-16 object-cover rounded border"
                                         />
-                                        <button
-                                            onClick={() => removeUploadedImage('locations', image.id)}
-                                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                            disabled={!canEdit}
-                                        >
-                                            <X className="w-3 h-3" />
-                                        </button>
+                                        <div className="absolute top-1 right-1 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    window.open(image.url || image.cloud_url, '_blank')
+                                                }}
+                                                className="bg-blue-500 text-white rounded-full p-1 hover:bg-blue-600 transition-colors"
+                                                title="View image"
+                                            >
+                                                <Eye className="w-3 h-3" />
+                                            </button>
+                                            <button
+                                                onClick={() => removeUploadedImage('locations', image.id)}
+                                                className="bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                                                disabled={!canEdit}
+                                                title="Remove image"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>

@@ -372,10 +372,14 @@ async request(endpoint, options = {}) {
     }
 
     // Product Image endpoints
-    async uploadProductImages(collectionId, images, token) {
+    async uploadProductImages(collectionId, images, ornamentTypes, token) {
         const formData = new FormData();
         for (const image of images) {
             formData.append('images', image);
+        }
+        // Append ornament types as JSON array
+        if (ornamentTypes && ornamentTypes.length > 0) {
+            formData.append('ornament_types', JSON.stringify(ornamentTypes));
         }
 
         return fetch(`${this.baseURL}/probackendapp/api/collections/${collectionId}/upload-products/`, {

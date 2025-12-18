@@ -81,47 +81,58 @@ export function WorkflowTab({ project }) {
 
     // Handlers for sequential display logic
     const handleRequestSuggestions = async (description, targetAudience = null, campaignSeason = null) => {
-        if (!description || !project?.id) {
-            setError('Please enter a description first')
+        if (!project?.id) {
+            setError('Project not found')
             return
         }
 
-        setSuggestionsRequested(true)
+        // Only set suggestionsRequested if description is provided
+        if (description && description.trim()) {
+            setSuggestionsRequested(true)
+        } else {
+            setSuggestionsRequested(false)
+        }
+
         setLoading(true)
         setError(null)
         setSuccessMessage(null)
 
         try {
-            // Call the API to generate AI suggestions (will update existing or create new)
+            // Call the API to update collection (description is optional, will generate suggestions only if description is provided)
             const response = await apiService.updateCollectionDescription(
                 project.id,
-                description,
+                description || "",
                 null,
                 targetAudience,
                 campaignSeason
             )
 
             if (response.success && response.collection) {
-                // Update the collection data with NEW suggestions
+                // Update the collection data
                 setCollectionData(response.collection)
-                setSuccessMessage('AI suggestions updated successfully!')
-                console.log('AI suggestions generated/updated successfully:', response.collection.items?.[0])
+
+                if (description && description.trim()) {
+                    setSuccessMessage('AI suggestions updated successfully!')
+                    console.log('AI suggestions generated/updated successfully:', response.collection.items?.[0])
+                } else {
+                    setSuccessMessage('Project settings saved successfully!')
+                }
 
                 // Mark step 1 as saved only after successful save
-                // Step 1 is saved when description, targetAudience, and campaignSeason are saved
+                // Step 1 is saved when targetAudience and campaignSeason are saved (description is optional)
                 // This will automatically unlock step 2 via isStepUnlocked
                 setSavedSteps(prev => new Set([...prev, 1]))
 
-                // Navigate to step 2 (Moodboard Setup) after generating suggestions
+                // Navigate to step 2 (Moodboard Setup)
                 setActiveStep(2)
 
                 // Clear success message after 3 seconds
                 setTimeout(() => setSuccessMessage(null), 3000)
             } else {
-                throw new Error(response.error || 'Failed to generate suggestions')
+                throw new Error(response.error || 'Failed to save project settings')
             }
         } catch (err) {
-            console.error('Error generating suggestions:', err)
+            console.error('Error saving project settings:', err)
             setError(err.message)
             setSuggestionsRequested(false)
         } finally {
@@ -143,19 +154,20 @@ export function WorkflowTab({ project }) {
                     // Only add steps that are actually saved to the backend
                     const newSavedSteps = new Set()
 
-                    // Check if step 1 is saved (has description, targetAudience, and campaignSeason saved to backend)
+                    // Check if step 1 is saved (has targetAudience and campaignSeason saved to backend)
                     // Step 2 unlocks ONLY when step 1 is fully saved to backend
-                    // All three fields must be saved (description is required, targetAudience and campaignSeason are saved when provided)
+                    // Description is optional - only targetAudience and campaignSeason are required
                     const hasDescription = data.description && data.description.trim()
                     const hasTargetAudience = data.target_audience !== undefined && data.target_audience !== null
                     const hasCampaignSeason = data.campaign_season !== undefined && data.campaign_season !== null
-                    const step1Saved = hasDescription && hasTargetAudience && hasCampaignSeason
+                    // Step 1 is saved if targetAudience and campaignSeason are provided (description is optional)
+                    const step1Saved = hasTargetAudience && hasCampaignSeason
 
                     if (step1Saved) {
                         newSavedSteps.add(1) // Step 1 is saved - this will unlock step 2 via isStepUnlocked
 
-                        // Check if we have suggestions already generated
-                        if (data.items && data.items.length > 0) {
+                        // Check if we have suggestions already generated (only if description exists)
+                        if (hasDescription && data.items && data.items.length > 0) {
                             const item = data.items[0]
                             const hasSuggestions = (
                                 (item.suggested_themes && item.suggested_themes.length > 0) ||
@@ -165,6 +177,9 @@ export function WorkflowTab({ project }) {
                             if (hasSuggestions) {
                                 setSuggestionsRequested(true)
                             }
+                        } else {
+                            // No description means no suggestions
+                            setSuggestionsRequested(false)
                         }
                     }
 
@@ -229,19 +244,20 @@ export function WorkflowTab({ project }) {
 
             switch (activeStep) {
                 case 1:
-                    // Brief & Concept step - automatically request suggestions when Save and Continue is clicked
-                    if (briefFormData.hasDescription && briefFormData.description.trim()) {
-                        await handleRequestSuggestions(
-                            briefFormData.description,
-                            briefFormData.targetAudience || null,
-                            briefFormData.campaignSeason || null
-                        )
-                        // handleRequestSuggestions already navigates to step 2, so we don't need to do it here
-                        return
-                    } else {
-                        setError('Please enter a project description first')
+                    // Brief & Concept step - save targetAudience and campaignSeason (description is optional)
+                    // If description is provided, generate suggestions; otherwise, allow proceeding without suggestions
+                    if (!briefFormData.targetAudience || !briefFormData.campaignSeason) {
+                        setError('Please enter target audience and campaign season')
                         return
                     }
+
+                    await handleRequestSuggestions(
+                        briefFormData.description || "",
+                        briefFormData.targetAudience || null,
+                        briefFormData.campaignSeason || null
+                    )
+                    // handleRequestSuggestions already navigates to step 2, so we don't need to do it here
+                    return
                 case 2:
                     // Moodboard setup step - save selections for themes, backgrounds, poses, locations, and colors
                     // Also generates prompts using Gemini AI
@@ -402,13 +418,17 @@ export function WorkflowTab({ project }) {
                 )
             case 2:
                 // Moodboard Setup tab
+                // Only show suggestions if description was provided (suggestionsRequested is true)
+                const hasDescription = collectionData?.description && collectionData.description.trim()
+                const shouldShowSuggestions = suggestionsRequested && hasDescription
+
                 return (
                     <>
                         <ThemesAndBackgrounds
                             project={project}
                             collectionData={collectionData}
                             onSave={handleStepSave}
-                            showSuggestions={suggestionsRequested}
+                            showSuggestions={shouldShowSuggestions}
                             onSelectionsChange={(selections) => setCurrentSelections(prev => ({ ...prev, ...selections }))}
                             onImagesChange={(images) => setUploadedImages(prev => ({ ...prev, ...images }))}
                             canEdit={canEdit}
@@ -417,7 +437,7 @@ export function WorkflowTab({ project }) {
                             project={project}
                             collectionData={collectionData}
                             onSave={handleStepSave}
-                            showSuggestions={suggestionsRequested}
+                            showSuggestions={shouldShowSuggestions}
                             onSelectionsChange={(selections) => setCurrentSelections(prev => ({ ...prev, ...selections }))}
                             onImagesChange={(images) => setUploadedImages(prev => ({ ...prev, colors: images }))}
                             canEdit={canEdit}

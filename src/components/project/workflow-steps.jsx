@@ -18,8 +18,7 @@ export function WorkflowSteps({ activeStep, setActiveStep, savedSteps, isStepUnl
                     {steps.map((step, index) => {
                         const isActive = step.number === activeStep
                         const isCompleted = step.number < activeStep
-                        const isUnlocked = isStepUnlocked ? isStepUnlocked(step.number) : true
-                        const canClick = isUnlocked && !isGenerating
+                        const canClick = !isGenerating
 
                         return (
                             <div key={step.number} className="flex items-center flex-1">
@@ -44,7 +43,7 @@ export function WorkflowSteps({ activeStep, setActiveStep, savedSteps, isStepUnl
                                                 setActiveStep(step.number)
                                             }
                                         }}
-                                        title={isGenerating ? "Image generation in progress..." : (!isUnlocked ? "Complete the previous step to unlock this step" : "")}
+                                        title={isGenerating ? "Image generation in progress..." : ""}
                                     >
                                         {isCompleted ? (
                                             <Check className="w-5 h-5 text-white" strokeWidth={3} />
@@ -54,7 +53,7 @@ export function WorkflowSteps({ activeStep, setActiveStep, savedSteps, isStepUnl
                                             <span className="text-gray-500 font-semibold text-sm">{step.number}</span>
                                         )}
                                     </div>
-                                    <p className={`mt-2 text-sm text-center text-gray-700 ${!isUnlocked ? "opacity-60" : ""}`}>
+                                    <p className="mt-2 text-sm text-center text-gray-700">
                                         {step.title}
                                     </p>
                                 </div>

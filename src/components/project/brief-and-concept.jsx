@@ -55,12 +55,12 @@ export function BriefAndConcept({ onRequestSuggestions, collectionData, suggesti
 
             <div className="space-y-4">
                 <div className="space-y-3">
-                    <label htmlFor="project-description" className="block text-sm font-medium text-[#1a1a1a]">Project Description</label>
+                    <label htmlFor="project-description" className="block text-sm font-medium text-[#1a1a1a]">Project Description <span className="text-[#708090] font-normal">(Optional)</span></label>
                     <textarea
                         id="project-description"
                         value={description}
                         onChange={handleDescriptionChange}
-                        placeholder="Enter your project description..."
+                        placeholder="Enter your project description (optional)..."
                         className="w-full h-32 px-4 py-3 border border-[#e6e6e6] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#884cff] focus:border-transparent resize-none disabled:bg-gray-50 disabled:cursor-not-allowed"
                         disabled={!canEdit}
                     />

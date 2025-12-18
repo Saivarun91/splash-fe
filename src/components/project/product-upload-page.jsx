@@ -5,8 +5,12 @@ import { Upload, X, CheckCircle, Image as ImageIcon, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { apiService } from "@/lib/api"
 import { useAuth } from "@/context/AuthContext"
+import { HierarchicalOrnamentSelect } from "./hierarchical-ornament-select"
+
 export function ProductUploadPage({ project, collectionData, onSave, canEdit = true }) {
     const [selectedFiles, setSelectedFiles] = useState([])
+    const [fileOrnamentTypes, setFileOrnamentTypes] = useState({}) // Map file index to ornament type
+    const [filePreviews, setFilePreviews] = useState({}) // Map file index to preview URL
     const [uploadedProducts, setUploadedProducts] = useState([])
     const [uploading, setUploading] = useState(false)
     const [deleting, setDeleting] = useState(false)
@@ -25,13 +29,79 @@ export function ProductUploadPage({ project, collectionData, onSave, canEdit = t
     const handleFileSelect = (e) => {
         const files = Array.from(e.target.files)
         if (files.length > 0) {
-            setSelectedFiles(prev => [...prev, ...files])
+            const newFiles = [...selectedFiles, ...files]
+            setSelectedFiles(newFiles)
+
+            // Create previews for new files
+            const newPreviews = { ...filePreviews }
+            files.forEach((file, fileIndex) => {
+                const actualIndex = selectedFiles.length + fileIndex
+                const previewUrl = URL.createObjectURL(file)
+                newPreviews[actualIndex] = previewUrl
+            })
+            setFilePreviews(newPreviews)
         }
+        // Reset file input to allow selecting the same file again
+        e.target.value = ''
     }
 
     const handleRemoveFile = (index) => {
-        setSelectedFiles(prev => prev.filter((_, i) => i !== index))
+        // Clean up preview URL
+        if (filePreviews[index]) {
+            URL.revokeObjectURL(filePreviews[index])
+        }
+
+        // Remove file and reindex everything
+        setSelectedFiles(prev => {
+            const newFiles = prev.filter((_, i) => i !== index)
+            return newFiles
+        })
+
+        // Reindex previews and ornament types
+        setFilePreviews(prev => {
+            const newPreviews = {}
+            Object.keys(prev).forEach(key => {
+                const keyNum = parseInt(key)
+                if (keyNum < index) {
+                    newPreviews[keyNum] = prev[key]
+                } else if (keyNum > index) {
+                    newPreviews[keyNum - 1] = prev[key]
+                }
+                // Skip the deleted index
+            })
+            return newPreviews
+        })
+
+        setFileOrnamentTypes(prev => {
+            const newTypes = {}
+            Object.keys(prev).forEach(key => {
+                const keyNum = parseInt(key)
+                if (keyNum < index) {
+                    newTypes[keyNum] = prev[key]
+                } else if (keyNum > index) {
+                    newTypes[keyNum - 1] = prev[key]
+                }
+                // Skip the deleted index
+            })
+            return newTypes
+        })
     }
+
+    const handleOrnamentTypeChange = (fileIndex, ornamentType) => {
+        setFileOrnamentTypes(prev => ({
+            ...prev,
+            [fileIndex]: ornamentType
+        }))
+    }
+
+    // Clean up preview URLs on unmount
+    useEffect(() => {
+        return () => {
+            Object.values(filePreviews).forEach(url => {
+                if (url) URL.revokeObjectURL(url)
+            })
+        }
+    }, [filePreviews])
 
     const handleDeleteProduct = async (product) => {
         if (!window.confirm("Are you sure you want to delete this product image?")) return
@@ -79,17 +149,33 @@ export function ProductUploadPage({ project, collectionData, onSave, canEdit = t
             return
         }
 
+        // Check if all files have ornament types selected
+        const missingTypes = selectedFiles.filter((_, index) => !fileOrnamentTypes[index])
+        if (missingTypes.length > 0) {
+            setError('Please select ornament type for all files')
+            return
+        }
+
         setUploading(true)
         setError(null)
 
         try {
+            // Prepare ornament types array matching the files order
+            const ornamentTypes = selectedFiles.map((_, index) => fileOrnamentTypes[index] || '')
+
             const response = await apiService.uploadProductImages(
                 collectionData.id,
                 selectedFiles,
+                ornamentTypes,
                 token
             )
 
             if (response.success) {
+                // Clean up preview URLs
+                Object.values(filePreviews).forEach(url => {
+                    if (url) URL.revokeObjectURL(url)
+                })
+
                 // Refresh collection data to get uploaded products
                 const updatedCollection = await apiService.getCollection(collectionData.id, token)
                 if (updatedCollection.items?.[0]?.product_images) {
@@ -97,6 +183,8 @@ export function ProductUploadPage({ project, collectionData, onSave, canEdit = t
                 }
 
                 setSelectedFiles([])
+                setFilePreviews({})
+                setFileOrnamentTypes({})
                 if (onSave) {
                     await onSave({ productsUploaded: true })
                 }
@@ -162,34 +250,68 @@ export function ProductUploadPage({ project, collectionData, onSave, canEdit = t
                     </Button>
 
                     {hasSelectedFiles && (
-                        <div className="mt-4 space-y-2">
-                            <p className="text-sm font-medium text-[#1a1a1a]">Selected Files:</p>
-                            {selectedFiles.map((file, index) => (
-                                <div
-                                    key={index}
-                                    className="flex items-center justify-between bg-white border border-[#e6e6e6] rounded-lg p-3"
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <ImageIcon className="w-4 h-4 text-[#708090]" />
-                                        <span className="text-sm text-[#1a1a1a]">{file.name}</span>
-                                        <span className="text-xs text-[#708090]">
-                                            ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                                        </span>
-                                    </div>
-                                    <button
-                                        onClick={() => handleRemoveFile(index)}
-                                        className="text-red-500 hover:text-red-700"
-                                        disabled={!canEdit}
+                        <div className="mt-6">
+                            <p className="text-sm font-medium text-[#1a1a1a] mb-4">Selected Files Preview:</p>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
+                                {selectedFiles.map((file, index) => (
+                                    <div
+                                        key={index}
+                                        className="bg-white border border-[#e6e6e6] rounded-lg p-3 space-y-3 relative group hover:border-[#884cff]/50 transition-all"
                                     >
-                                        <X className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            ))}
+                                        {/* Remove Button */}
+                                        <button
+                                            onClick={() => handleRemoveFile(index)}
+                                            className="absolute top-2 right-2 bg-red-500 hover:bg-red-700 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                            disabled={!canEdit}
+                                            title="Remove file"
+                                        >
+                                            <X className="w-3.5 h-3.5" />
+                                        </button>
+
+                                        {/* File Preview - At Top */}
+                                        <div className="w-full aspect-square bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
+                                            {filePreviews[index] ? (
+                                                <img
+                                                    src={filePreviews[index]}
+                                                    alt={file.name}
+                                                    className="w-full h-full object-contain"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center">
+                                                    <ImageIcon className="w-8 h-8 text-gray-400" />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* File Name - Below Preview */}
+                                        <div>
+                                            <p className="text-xs font-medium text-[#1a1a1a] truncate" title={file.name}>
+                                                {file.name}
+                                            </p>
+                                            <p className="text-xs text-[#708090] mt-0.5">
+                                                {(file.size / 1024 / 1024).toFixed(2)} MB
+                                            </p>
+                                        </div>
+
+                                        {/* Ornament Type Selection - Below File Name */}
+                                        <div>
+                                            <label className="block text-xs font-medium text-[#1a1a1a] mb-1.5">
+                                                Ornament Type <span className="text-red-500">*</span>
+                                            </label>
+                                            <HierarchicalOrnamentSelect
+                                                selectedType={fileOrnamentTypes[index] || ''}
+                                                onTypeChange={(type) => handleOrnamentTypeChange(index, type)}
+                                                className="w-full"
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
 
                             <Button
                                 onClick={handleUpload}
-                                disabled={uploading || !canEdit}
-                                className="bg-[#884cff] hover:bg-[#7a3ff0] text-white w-full mt-4"
+                                disabled={uploading || !canEdit || selectedFiles.some((_, index) => !fileOrnamentTypes[index])}
+                                className="bg-[#884cff] hover:bg-[#7a3ff0] text-white w-full"
                                 title={canEdit ? "" : "You need Editor or Owner role to upload products"}
                             >
                                 {uploading ? 'Uploading...' : `Upload ${selectedFiles.length} Image(s)`}
@@ -248,6 +370,11 @@ export function ProductUploadPage({ project, collectionData, onSave, canEdit = t
                                 </div>
                                 <div className="p-3 bg-gray-50">
                                     <p className="text-sm font-medium text-[#1a1a1a]">Product {index + 1}</p>
+                                    {product.ornament_type && (
+                                        <p className="text-xs text-[#884cff] mt-1 font-medium">
+                                            {product.ornament_type}
+                                        </p>
+                                    )}
                                     <p className="text-xs text-[#708090] mt-1">
                                         {product.generated_images?.length || 0} variations generated
                                     </p>

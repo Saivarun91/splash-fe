@@ -149,11 +149,6 @@ const PlainBackgroundForm = () => {
             return
         }
 
-        if (!formData.prompt) {
-            setError("Please enter a prompt")
-            return
-        }
-
         setIsLoading(true)
 
         try {
@@ -257,7 +252,7 @@ const PlainBackgroundForm = () => {
                             <div>
                                 <label className="block text-lg font-semibold text-[#1a1a1a] mb-4 flex items-center gap-2">
                                     <Sparkles size={20} className="text-[#884cff]" />
-                                    Description / Prompt<span className="text-red-500 ml-1">*</span>
+                                    Description / Prompt <span className="text-gray-400 text-sm font-normal">(Optional)</span>
                                 </label>
                                 <Input
                                     type="text"
