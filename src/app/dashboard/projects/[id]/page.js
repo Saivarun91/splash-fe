@@ -2,17 +2,19 @@
 import { Header } from "@/components/project/Header"
 import { WorkflowContent } from "@/components/project/workflow-content"
 import Link from "next/link"
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import { apiService } from "@/lib/api"
 
 export default function ProjectPage({ params }) {
-    const projectId = params.id
+    // Unwrap params Promise using React.use()
+    const resolvedParams = use(params)
+    const projectId = resolvedParams.id
     const [project, setProject] = useState(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [userRole, setUserRole] = useState(null)
     const [permissions, setPermissions] = useState(null)
-
+console.log("projectId :", projectId)
     const fetchProject = async () => {
         try {
             setLoading(true)

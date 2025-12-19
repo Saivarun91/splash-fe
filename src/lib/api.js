@@ -351,13 +351,61 @@ async request(endpoint, options = {}) {
     }
 
     // AI Image Generation endpoints
-    async generateAIImages(collectionId,token) {
-        return this.request(`/probackendapp/api/collections/${collectionId}/generate-images/`, {
+    async generateAIImages(collectionId, token, onProgress = null) {
+        // Start the Celery task
+        const startResponse = await this.request(`/probackendapp/api/collections/${collectionId}/generate-images/`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
-                'Content-Type':'application/json'
+                'Content-Type': 'application/json'
             },
+        });
+
+        if (!startResponse.success || !startResponse.task_id) {
+            throw new Error(startResponse.error || 'Failed to start AI image generation');
+        }
+
+        const taskId = startResponse.task_id;
+
+        // Poll for task completion
+        return new Promise((resolve, reject) => {
+            const pollInterval = setInterval(async () => {
+                try {
+                    const statusResponse = await this.getTaskStatus(taskId, token);
+
+                    if (onProgress) {
+                        onProgress(statusResponse);
+                    }
+
+                    if (statusResponse.status === 'SUCCESS') {
+                        clearInterval(pollInterval);
+                        // Return the result from the task
+                        // statusResponse.result contains {success, images, saved_images, total_generated}
+                        const result = statusResponse.result || {};
+                        resolve({
+                            images: result.images || [],
+                            saved_images: result.saved_images || [],
+                            success: result.success !== false,
+                            total_generated: result.total_generated || 0
+                        });
+                    } else if (statusResponse.status === 'FAILURE' || statusResponse.status === 'REVOKED') {
+                        clearInterval(pollInterval);
+                        const errorMsg = statusResponse.error ||
+                            (typeof statusResponse.result === 'string' ? statusResponse.result : 'Task failed');
+                        reject(new Error(errorMsg));
+                    }
+                    // If status is PENDING or STARTED, continue polling
+                } catch (error) {
+                    clearInterval(pollInterval);
+                    reject(error);
+                }
+            }, 2000); // Poll every 2 seconds
+
+            // Set a timeout (e.g., 10 minutes)
+            setTimeout(() => {
+                clearInterval(pollInterval);
+                reject(new Error('Task timeout: AI image generation took too long'));
+            }, 600000); // 10 minutes timeout
         });
     }
 
